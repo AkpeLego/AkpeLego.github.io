@@ -3,8 +3,20 @@ allow-lan: true
 bind-address: '*'
 mode: rule
 log-level: info
-external-controller: '127.0.0.1:9090'
 tcp-concurrent: true
+external-controller: '127.0.0.1:9090'
+
+tun:
+  enable: true
+  device: ClashVergeREV
+  stack: gvisor
+  mtu: 1500
+  dns-hijack:
+    - "any:53"
+    - "tcp://any:53"
+  auto-route: true
+  auto-detect-interface: true
+  
 dns:
     enable: true
     ipv6: false
@@ -19,5 +31,3 @@ proxies:
 proxy-groups:
 rules:
    
-
-
