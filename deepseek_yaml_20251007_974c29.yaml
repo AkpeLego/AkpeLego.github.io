@@ -1,26 +1,106 @@
-# Clash Revge Rev 简化配置
+# 完整的Clash配置 - 解决"数量未知"问题
 port: 7890
 socks-port: 7891
-mode: Rule
+redir-port: 7892
+mixed-port: 7890
+allow-lan: false
+mode: rule
 log-level: info
-external-controller: 0.0.0.0:9090
+external-controller: 127.0.0.1:9090
+secret: ""
 
 # 直连TCP/UDP配置
-tun:
-  enable: true
-  stack: system
-  dns-hijack:
-    - 0.0.0.0:53
+tcp-concurrent: true
+udp: true
+
 dns:
   enable: true
   listen: 0.0.0.0:53
-  enhanced-mode: redir-host
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
   nameserver:
     - 223.5.5.5
     - 119.29.29.29
+    - 8.8.8.8
+  fallback:
+    - 1.1.1.1
+    - 8.8.4.4
 
-proxies: []
-proxy-groups: []
+# 代理节点 - 这里必须有实际节点
+proxies:
+  # 示例节点1 - Shadowsocks
+  - name: "SS-Example-1"
+    type: ss
+    server: your-ss-server.com
+    port: 8443
+    cipher: aes-256-gcm
+    password: "your-password"
+    udp: true
 
+  # 示例节点2 - VMess
+  - name: "VMess-Example-1"
+    type: vmess
+    server: your-vmess-server.com
+    port: 443
+    uuid: your-uuid-here
+    alterId: 0
+    cipher: auto
+    udp: true
+    tls: true
+    network: ws
+    ws-path: /path
+    ws-headers:
+      Host: your-vmess-server.com
+
+# 代理组 - 必须引用上面定义的节点
+proxy-groups:
+  - name: "🚀 自动选择"
+    type: url-test
+    url: "http://www.gstatic.com/generate_204"
+    interval: 300
+    tolerance: 50
+    proxies:
+      - "SS-Example-1"
+      - "VMess-Example-1"
+
+  - name: "🔀 负载均衡"
+    type: load-balance
+    url: "http://www.gstatic.com/generate_204"
+    interval: 300
+    strategy: round-robin
+    proxies:
+      - "SS-Example-1"
+      - "VMess-Example-1"
+
+  - name: "🎯 手动选择"
+    type: select
+    proxies:
+      - "SS-Example-1"
+      - "VMess-Example-1"
+      - "🚀 自动选择"
+      - "DIRECT"
+
+  - name: "📹 流媒体"
+    type: select
+    proxies:
+      - "🚀 自动选择"
+      - "SS-Example-1"
+      - "VMess-Example-1"
+      - "DIRECT"
+
+  - name: "🐟 漏网之鱼"
+    type: select
+    proxies:
+      - "🎯 手动选择"
+      - "🚀 自动选择"
+      - "DIRECT"
+
+# 规则
 rules:
-  - MATCH,DIRECT
+  - DOMAIN-SUFFIX,google.com,🎯 手动选择
+  - DOMAIN-SUFFIX,github.com,🎯 手动选择
+  - DOMAIN-SUFFIX,youtube.com,📹 流媒体
+  - DOMAIN-SUFFIX,netflix.com,📹 流媒体
+  - DOMAIN-KEYWORD,gfw,🎯 手动选择
+  - GEOIP,CN,DIRECT
+  - MATCH,🐟 漏网之鱼
